@@ -1,0 +1,33 @@
+# Source ArcGIS data — too large for git, kept out of the repo
+Flood_System_Devt/
+*.zip
+
+# Generated processed data — too large; regenerate via convert_to_cog.py + export_vectors.py + compute_stats.py
+data_cog/
+data_vector/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / Vite
+web/node_modules/
+web/dist/
+
+# Dev-only: symlinks and copy of stats.json into web/public/.
+# These are recreated locally by the dev setup steps in README.md, and the Dockerfile
+# copies stats.json into the build at image-build time.
+web/public/data_cog
+web/public/data_vector
+web/public/stats.json
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.log
+
+# Streamlit byproducts
+.streamlit/

@@ -1,0 +1,7 @@
+# Data prep dependencies (only needed when (re)generating COGs / vectors).
+rasterio>=1.4
+rio-cogeo>=5.4
+geopandas>=1.0
+pyogrio>=0.10
+numpy>=1.24
+shapely>=2.0

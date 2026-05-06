@@ -1,0 +1,26 @@
+# Source ArcGIS data (huge; not needed in image — image uses generated data_cog/data_vector)
+Flood_System_Devt/
+*.zip
+
+# Python venv and processed-data scripts (not needed inside container)
+.venv/
+__pycache__/
+*.pyc
+
+# Git
+.git/
+.gitignore
+
+# Node
+web/node_modules/
+web/dist/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Streamlit phase
+app.py
+requirements.txt

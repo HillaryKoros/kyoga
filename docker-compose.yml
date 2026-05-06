@@ -1,0 +1,13 @@
+services:
+  flood-viewer:
+    build:
+      context: .
+      args:
+        # Set to a remote URL (e.g. https://cdn.example.com/kyoga) to fetch data
+        # from elsewhere. Empty = same origin (data baked into the image).
+        VITE_DATA_BASE: ""
+    image: kyoga-flood-viewer:latest
+    container_name: kyoga-flood-viewer
+    ports:
+      - "8080:80"
+    restart: unless-stopped
