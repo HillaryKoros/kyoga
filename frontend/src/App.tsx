@@ -148,9 +148,7 @@ export default function App() {
     if (!map || !stats) return;
     let cancelled = false;
 
-    const reconcile = () => {
-      if (cancelled) return;
-      if (!map.isStyleLoaded()) return; // wait for the next styledata fire
+    const doReconcile = () => {
       const wantedIds = new Set(activeLayers.map((a) => RASTER_LAYER_PREFIX + a.layer.id));
       const style = map.getStyle();
       for (const layer of style.layers ?? []) {
@@ -179,14 +177,23 @@ export default function App() {
         }
       }
     };
+    const reconcile = () => {
+      if (cancelled) return;
+      if (!map.isStyleLoaded()) return;
+      try { doReconcile(); } catch { /* style mid-update; will retry on next event */ }
+    };
 
     reconcile();
     map.on("styledata", reconcile);
+    map.on("sourcedata", reconcile);
     map.on("load", reconcile);
+    map.on("idle", reconcile);
     return () => {
       cancelled = true;
       map.off("styledata", reconcile);
+      map.off("sourcedata", reconcile);
       map.off("load", reconcile);
+      map.off("idle", reconcile);
     };
   }, [activeLayers, opacity, stats]);
 
@@ -198,6 +205,9 @@ export default function App() {
     const apply = () => {
       if (cancelled) return;
       if (!map.isStyleLoaded()) return; // wait for next styledata fire
+      try { doApply(); } catch { /* will retry */ }
+    };
+    const doApply = () => {
       if (showBoundary) {
         if (!map.getSource(BOUNDARY_SRC)) {
           map.addSource(BOUNDARY_SRC, { type: "geojson", data: vectorUrl("study_area.geojson") });
@@ -250,11 +260,15 @@ export default function App() {
 
     apply();
     map.on("styledata", apply);
+    map.on("sourcedata", apply);
     map.on("load", apply);
+    map.on("idle", apply);
     return () => {
       cancelled = true;
       map.off("styledata", apply);
+      map.off("sourcedata", apply);
       map.off("load", apply);
+      map.off("idle", apply);
     };
   }, [showRivers, showBoundary]);
 
