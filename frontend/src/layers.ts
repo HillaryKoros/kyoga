@@ -48,7 +48,8 @@ export const GROUPS: LayerGroup[] = ["Composite", "Hazard factors", "Vulnerabili
 // Override VITE_DATA_BASE at build time for an external CDN; otherwise the app
 // uses its own base path (matches vite.config.ts -> /kyoga).
 const APP_BASE = "/kyoga";
-export const DATA_BASE = (import.meta.env.VITE_DATA_BASE ?? APP_BASE).replace(/\/$/, "");
+// Use `||` (not `??`): an empty-string env var should fall back to APP_BASE.
+export const DATA_BASE = (import.meta.env.VITE_DATA_BASE || APP_BASE).replace(/\/$/, "");
 export const cogUrl = (path: string) => `${DATA_BASE}/data_cog/${path}`;
 export const vectorUrl = (file: string) => `${DATA_BASE}/data_vector/${file}`;
 export const statsUrl = () => `${DATA_BASE}/stats.json`;
