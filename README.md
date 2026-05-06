@@ -6,21 +6,71 @@ covering the Lake Kyoga basin (Uganda).
 Built with **React + Vite + MapLibre GL** + **Cloud-Optimized GeoTIFFs** read directly
 in the browser via HTTP range requests. No backend required at runtime.
 
-## Quick start (Docker)
+## Live demo
 
-The fastest way to run the app on any machine that has Docker:
+A public instance runs at **<http://149.102.153.66:8080/kyoga/>**.
+
+## Quick start
+
+There are two ways to run the app locally — **Docker** (recommended, single command)
+and **without Docker** (Node + a static server).
+
+In both cases you first need the processed data (`data_cog/` ~800 MB, `data_vector/` ~25 MB)
+generated from the source ArcGIS dataset — see [Data](#data).
+
+### Option A — with Docker (recommended)
 
 ```bash
 git clone https://github.com/HillaryKoros/kyoga.git
 cd kyoga
 
-# Place the processed data in data_cog/ and data_vector/ (see "Data" below)
-# Then build the image (data is baked in):
-docker compose build
-docker compose up -d
+# Generate the processed data (one-off; needs Python + the source ArcGIS dataset)
+./prepare_data.sh
+
+# Build the image (data + web build are baked in) and run
+docker compose up -d --build
 ```
 
 Open <http://localhost:8080/kyoga/>.
+
+```bash
+docker compose down       # stop
+docker compose logs -f    # follow logs
+```
+
+### Option B — without Docker
+
+```bash
+git clone https://github.com/HillaryKoros/kyoga.git
+cd kyoga
+
+# 1. Generate the data (Python venv with the data-prep deps)
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+./prepare_data.sh         # COGs + vectors + stats; symlinks into web/public/
+
+# 2. Build the web app (needs Node 20+)
+cd web && npm ci && npm run build && cd ..
+
+# 3. Stage everything in one folder for serving
+mkdir -p site
+cp -r web/dist/. site/
+cp -r data_cog site/data_cog
+cp -r data_vector site/data_vector
+cp data_cog/stats.json site/stats.json
+
+# 4. Serve it (any static HTTP server with byte-range support works)
+python3 -m http.server --directory site 8080
+```
+
+Open <http://localhost:8080/kyoga/>.
+
+For *active development* (with hot reload) skip steps 2-4 and run inside `web/`:
+
+```bash
+npm install
+npm run dev               # http://localhost:5173/kyoga/
+```
 
 ## Project layout
 
@@ -50,61 +100,34 @@ The processed `data_cog/` (~800 MB) and `data_vector/` (~25 MB) are **not in git
 they're regenerated from the original ArcGIS dataset by the included scripts.
 
 If you have the original dataset (`Flood_System_Devt/` containing `Flood_Hazard/`,
-`Flood_Vulnerability/`, and `Floods_Kyoga_basin/Floods_Kyoga_basin.gdb`):
+`Flood_Vulnerability/`, and `Floods_Kyoga_basin/Floods_Kyoga_basin.gdb`), run:
 
 ```bash
-# Set up Python venv with data-prep deps
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-
-# Generate COGs (web-mercator, nodata baked in)
-.venv/bin/python convert_to_cog.py
-
-# Extract rivers + study area from the geodatabase
-.venv/bin/python export_vectors.py
-
-# Compute per-layer stats (vmin/vmax/nodata) used for color stretching
-.venv/bin/python compute_stats.py
+./prepare_data.sh
 ```
 
-The three scripts are idempotent and can be re-run safely.
+`prepare_data.sh` runs the three idempotent steps:
 
-## Development
+| Script | Output |
+| --- | --- |
+| `convert_to_cog.py`  | `data_cog/**/*.tif` (web-mercator COGs with nodata baked in) |
+| `export_vectors.py`  | `data_vector/rivers.geojson`, `study_area.geojson`, `rivers.fgb` |
+| `compute_stats.py`   | `data_cog/stats.json` (per-layer p2/p98 + nodata sentinel) |
 
-```bash
-cd web
-npm install
+It also creates symlinks under `web/public/` so the dev server can serve the data.
 
-# stats.json must be available to the app — symlink or copy it once
-mkdir -p public
-ln -sfn ../../data_cog/stats.json public/stats.json
-ln -sfn ../../data_cog public/data_cog
-ln -sfn ../../data_vector public/data_vector
+## Hosting elsewhere
 
-npm run dev          # http://localhost:5173/kyoga/
-```
-
-The app fetches `stats.json`, COGs, and vectors from the same origin under the
-configured `base` path (`/kyoga/` by default).
-
-To target a different host for data (e.g. a CDN), set `VITE_DATA_BASE` at build time:
+To target a different host for the data (e.g. a CDN), set `VITE_DATA_BASE` at build time:
 
 ```bash
 VITE_DATA_BASE=https://cdn.example.com/kyoga npm run build
 ```
 
-## Production build
-
-```bash
-cd web && npm run build
-```
-
-The output `web/dist/` is a static folder. Combine it with `data_cog/` and
-`data_vector/` in any HTTPS-capable static host (Nginx, Apache, S3 + CloudFront,
-Cloudflare R2, GitHub Pages, etc.). The host must support **HTTP byte-range
-requests** — every static server does by default.
-
-Or just use the Docker image (recommended) — see "Quick start" above.
+Any HTTPS-capable static host with byte-range support works (Nginx, Apache,
+S3 + CloudFront, Cloudflare R2, GitHub Pages, etc.).
 
 ## Features
 
