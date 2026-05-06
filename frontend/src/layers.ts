@@ -45,9 +45,10 @@ export const LAYERS: LayerDef[] = [
 export const GROUPS: LayerGroup[] = ["Composite", "Hazard factors", "Vulnerability factors"];
 
 // Where to fetch the processed data from.
-//   VITE_DATA_BASE  — explicit absolute or relative URL (e.g. "https://cdn.example.com/kyoga")
-//   default         — same origin, joined with Vite's `base` (e.g. "/kyoga/")
-export const DATA_BASE = (import.meta.env.VITE_DATA_BASE ?? import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+// Override VITE_DATA_BASE at build time for an external CDN; otherwise the app
+// uses its own base path (matches vite.config.ts -> /kyoga).
+const APP_BASE = "/kyoga";
+export const DATA_BASE = (import.meta.env.VITE_DATA_BASE ?? APP_BASE).replace(/\/$/, "");
 export const cogUrl = (path: string) => `${DATA_BASE}/data_cog/${path}`;
 export const vectorUrl = (file: string) => `${DATA_BASE}/data_vector/${file}`;
 export const statsUrl = () => `${DATA_BASE}/stats.json`;
