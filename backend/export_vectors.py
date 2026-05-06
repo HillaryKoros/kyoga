@@ -2,7 +2,7 @@
 from pathlib import Path
 import geopandas as gpd
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent
 GDB = ROOT / "Flood_System_Devt" / "Floods_Kyoga_basin" / "Floods_Kyoga_basin.gdb"
 DST = ROOT / "data_vector"
 DST.mkdir(exist_ok=True)

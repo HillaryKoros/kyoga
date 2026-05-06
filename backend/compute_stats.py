@@ -7,7 +7,7 @@ import json
 import numpy as np
 import rasterio
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent
 COG_ROOT = ROOT / "data_cog"
 
 stats = {}

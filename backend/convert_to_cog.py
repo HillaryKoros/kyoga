@@ -10,7 +10,7 @@ import rasterio
 from rio_cogeo.cogeo import cog_translate
 from rio_cogeo.profiles import cog_profiles
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent
 SRC_DIRS = [
     ROOT / "Flood_System_Devt" / "Flood_Hazard",
     ROOT / "Flood_System_Devt" / "Flood_Vulnerability",

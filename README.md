@@ -1,22 +1,48 @@
 # Kyoga Basin Flood Risk Viewer
 
-Open-source web map for the ICPAC/IGAD flood hazard, vulnerability and risk layers
+Open-source web map for flood **hazard**, **vulnerability**, and **risk** layers
 covering the Lake Kyoga basin (Uganda).
 
-Built with **React + Vite + MapLibre GL** + **Cloud-Optimized GeoTIFFs** read directly
-in the browser via HTTP range requests. No backend required at runtime.
+Built with **React + Vite + MapLibre GL** + **Cloud-Optimized GeoTIFFs** read
+directly in the browser via HTTP byte-range requests. No server-side tile
+renderer required.
 
 ## Live demo
 
-A public instance runs at **<http://149.102.153.66:8080/kyoga/>**.
+<http://149.102.153.66:8080/kyoga/>
+
+## Project layout
+
+```
+kyoga/
+├── frontend/             React + Vite + MapLibre GL app
+│   ├── src/
+│   │   ├── App.tsx       map + state
+│   │   ├── layers.ts     18-layer registry
+│   │   ├── colormaps.ts  palettes (CSS gradients + COG-protocol URLs)
+│   │   └── components/   LayerPanel, MapControls, Legend, PixelInspector
+│   └── public/           static assets (stats.json copied here at build time)
+├── backend/              Python data-prep scripts (not a runtime backend)
+│   ├── convert_to_cog.py      source GeoTIFFs -> web-mercator COGs (nodata baked in)
+│   ├── export_vectors.py      .gdb -> GeoJSON / FlatGeobuf
+│   ├── compute_stats.py       per-COG vmin/vmax + nodata sentinels
+│   └── requirements.txt
+├── data_cog/             generated COGs + stats.json (NOT in git)
+├── data_vector/          generated GeoJSON / FlatGeobuf (NOT in git)
+├── prepare_data.sh       one-shot wrapper: runs all 3 backend scripts
+├── Dockerfile            multi-stage: vite build -> nginx serve
+├── nginx.conf            static host with CORS + range request support
+└── docker-compose.yml    convenience for `docker compose up`
+```
 
 ## Quick start
 
-There are two ways to run the app locally — **Docker** (recommended, single command)
-and **without Docker** (Node + a static server).
+There are two ways to run the app — **with Docker** (recommended, single
+command) or **without Docker** (Node + a static server).
 
-In both cases you first need the processed data (`data_cog/` ~800 MB, `data_vector/` ~25 MB)
-generated from the source ArcGIS dataset — see [Data](#data).
+In both cases you first need the processed data (`data_cog/` ~800 MB,
+`data_vector/` ~25 MB) generated from the source ArcGIS dataset — see
+[Data](#data).
 
 ### Option A — with Docker (recommended)
 
@@ -34,8 +60,8 @@ docker compose up -d --build
 Open <http://localhost:8080/kyoga/>.
 
 ```bash
-docker compose down       # stop
-docker compose logs -f    # follow logs
+docker compose down        # stop
+docker compose logs -f     # follow logs
 ```
 
 ### Option B — without Docker
@@ -44,20 +70,19 @@ docker compose logs -f    # follow logs
 git clone https://github.com/HillaryKoros/kyoga.git
 cd kyoga
 
-# 1. Generate the data (Python venv with the data-prep deps)
+# 1. Generate the data
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-./prepare_data.sh         # COGs + vectors + stats; symlinks into web/public/
+.venv/bin/pip install -r backend/requirements.txt
+./prepare_data.sh          # writes data_cog/, data_vector/, frontend/public/stats.json
 
 # 2. Build the web app (needs Node 20+)
-cd web && npm ci && npm run build && cd ..
+cd frontend && npm ci && npm run build && cd ..
 
-# 3. Stage everything in one folder for serving
+# 3. Stage one folder for serving
 mkdir -p site
-cp -r web/dist/. site/
-cp -r data_cog site/data_cog
-cp -r data_vector site/data_vector
-cp data_cog/stats.json site/stats.json
+cp -r frontend/dist/. site/
+cp -r data_cog       site/data_cog
+cp -r data_vector    site/data_vector
 
 # 4. Serve it (any static HTTP server with byte-range support works)
 python3 -m http.server --directory site 8080
@@ -65,62 +90,33 @@ python3 -m http.server --directory site 8080
 
 Open <http://localhost:8080/kyoga/>.
 
-For *active development* (with hot reload) skip steps 2-4 and run inside `web/`:
+For active development with hot reload, skip steps 2-4 and run inside `frontend/`:
 
 ```bash
 npm install
-npm run dev               # http://localhost:5173/kyoga/
-```
-
-## Project layout
-
-```
-kyoga/
-├── web/                       React + Vite + MapLibre GL app
-│   ├── src/
-│   │   ├── App.tsx            map + state
-│   │   ├── layers.ts          18-layer registry
-│   │   ├── colormaps.ts       matplotlib-style palettes (CSS gradients + COG-protocol URLs)
-│   │   └── components/        LayerPanel, MapControls, Legend, PixelInspector
-│   └── public/                static assets (incl. stats.json copied from data_cog/)
-├── data_cog/                  generated COGs + stats.json (NOT in git — see "Data")
-├── data_vector/               generated GeoJSON / FlatGeobuf (NOT in git)
-├── convert_to_cog.py          one-off: source GeoTIFFs -> web-mercator COGs (with nodata baked in)
-├── export_vectors.py          one-off: gdb -> GeoJSON / FlatGeobuf
-├── compute_stats.py           one-off: per-COG vmin/vmax + nodata sentinel
-├── Dockerfile                 multi-stage: vite build -> nginx serve
-├── nginx.conf                 static host with CORS + range request support
-├── docker-compose.yml         convenience for `docker compose up`
-└── requirements.txt           Python deps for the data-prep scripts
+npm run dev                # http://localhost:5173/kyoga/
 ```
 
 ## Data
 
-The processed `data_cog/` (~800 MB) and `data_vector/` (~25 MB) are **not in git** —
-they're regenerated from the original ArcGIS dataset by the included scripts.
+The processed `data_cog/` and `data_vector/` are **not in git** — they're
+regenerated from the original ArcGIS dataset (`Flood_System_Devt/`).
 
-If you have the original dataset (`Flood_System_Devt/` containing `Flood_Hazard/`,
-`Flood_Vulnerability/`, and `Floods_Kyoga_basin/Floods_Kyoga_basin.gdb`), run:
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-./prepare_data.sh
-```
-
-`prepare_data.sh` runs the three idempotent steps:
+`prepare_data.sh` runs three idempotent steps:
 
 | Script | Output |
 | --- | --- |
-| `convert_to_cog.py`  | `data_cog/**/*.tif` (web-mercator COGs with nodata baked in) |
-| `export_vectors.py`  | `data_vector/rivers.geojson`, `study_area.geojson`, `rivers.fgb` |
-| `compute_stats.py`   | `data_cog/stats.json` (per-layer p2/p98 + nodata sentinel) |
+| `backend/convert_to_cog.py`  | `data_cog/**/*.tif` (web-mercator COGs with nodata baked in) |
+| `backend/export_vectors.py`  | `data_vector/rivers.geojson`, `study_area.geojson`, `rivers.fgb` |
+| `backend/compute_stats.py`   | `data_cog/stats.json` (per-layer p2/p98 + nodata sentinel) |
 
-It also creates symlinks under `web/public/` so the dev server can serve the data.
+It also creates symlinks under `frontend/public/` so the dev server can serve
+the data, and copies `stats.json` into the same dir.
 
-## Hosting elsewhere
+## Hosting on a different origin
 
-To target a different host for the data (e.g. a CDN), set `VITE_DATA_BASE` at build time:
+To fetch the data from a separate host (e.g. a CDN), set `VITE_DATA_BASE` at
+build time:
 
 ```bash
 VITE_DATA_BASE=https://cdn.example.com/kyoga npm run build
@@ -131,14 +127,14 @@ S3 + CloudFront, Cloudflare R2, GitHub Pages, etc.).
 
 ## Features
 
-- 18 raster layers grouped into Composite / Hazard / Vulnerability with checkboxes
-- Per-layer auto color stretch (p2/p98 of valid pixels) with proper nodata masking
-- Map controls panel: basemap (OSM | Satellite), opacity, zoom, colormap override, overlay toggles
-- Click anywhere on the map → in-app pixel inspector reads each visible COG
+- 18 raster layers grouped into Composite / Hazard / Vulnerability
+- Per-layer auto color stretch (p2/p98 of valid pixels), proper nodata masking
+- Floating map controls: basemap (OSM | Satellite), opacity, zoom, colormap, overlay toggles
+- Click anywhere on the map → pixel inspector reads each visible COG
 - Hover rivers / boundary → property tooltip
 - Compact bottom-center legend with CSS gradients
 
-## Open-source stack
+## Stack (all open source)
 
 - React 19, Vite 8, TypeScript
 - MapLibre GL JS (BSD-3)
