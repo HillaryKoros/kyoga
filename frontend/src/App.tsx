@@ -67,6 +67,7 @@ export default function App() {
   const [clickPoint, setClickPoint] = useState<{ lat: number; lon: number } | null>(null);
   const [pixelRows, setPixelRows] = useState<{ name: string; group: string; value: number | null }[]>([]);
   const [pixelLoading, setPixelLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetch(statsUrl()).then((r) => r.json()).then(setStats).catch(console.error);
@@ -322,8 +323,16 @@ export default function App() {
   }));
 
   return (
-    <div className="app">
+    <div className={`app${sidebarOpen ? " sidebar-open" : ""}`}>
       <header className="app-header">
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarOpen((v) => !v)}
+          aria-label={sidebarOpen ? "Close layers" : "Open layers"}
+          title="Layers"
+        >
+          <i className={`fa-solid ${sidebarOpen ? "fa-xmark" : "fa-bars"}`} />
+        </button>
         <div className="brand">
           <span className="brand-mark" aria-hidden />
           <div className="brand-text">
@@ -336,6 +345,7 @@ export default function App() {
         </p>
       </header>
       <div className="app-body">
+      {sidebarOpen && <div className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-hidden />}
       <LayerPanel selected={selected} toggle={toggle} />
       <div className="map-area">
         <div ref={containerRef} className="map" />

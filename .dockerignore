@@ -15,6 +15,11 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 
+# Dev-only symlinks/copies — the Dockerfile re-creates these from data_cog/ + data_vector/ at build time
+frontend/public/data_cog
+frontend/public/data_vector
+frontend/public/stats.json
+
 # Editor / OS
 .idea/
 .vscode/
